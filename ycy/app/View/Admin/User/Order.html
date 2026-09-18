@@ -1,0 +1,50 @@
+#{include file="../Header.html"}
+
+<!--begin::Content-->
+<div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+    <!--begin::Toolbar-->
+    #{include file="../Toolbar.html"}
+    <!--end::Toolbar-->
+    <!--begin::Post-->
+    <div class="post d-flex flex-column-fluid" id="kt_post">
+        <!--begin::Container-->
+        <div id="kt_content_container" class="container-fluid">
+            <!--begin::Row-->
+            <h2 class="admin-mobile-only-section">#{t("充值概览")}</h2>
+            <div class="md-stat-grid" data-admin-mobile-stats="mini" role="region" aria-label="#{t('会员订单数据概览')}">
+                #{include file="../Component/StatCard.html" accent="primary" icon="fa-receipt" label="订单数量" vclass="order_count" value="—"}
+                #{include file="../Component/StatCard.html" accent="success" icon="fa-circle-dollar" label="订单金额" vclass="order_amount" value="—"}
+            </div>
+            <!--end::Row-->
+
+            <!--begin::Tables Widget 9-->
+            <h2 class="admin-mobile-only-section">#{t("充值订单")}</h2>
+            <div class="card mb-5 mb-xl-8">
+                <!--begin::Header-->
+                <div class="card-header">
+                    <div class="card-toolbar">
+                        <button class="btn btn-sm btn-light-primary clear me-3">
+                            <i class="fa-duotone fa-regular fa-trash-can-clock"></i> #{t("一键清理无用订单")}
+                        </button>
+                        <button class="btn btn-sm btn-light-success btn-app-export me-3"><i class="fa-duotone fa-regular fa-down-to-line"></i>
+                            #{t("导出筛选订单")}
+                        </button>
+                    </div>
+                </div>
+                <!--end::Header-->
+                <div class="card-body py-3">
+                    <table id="recharge-order-table" ></table>
+                </div>
+            </div>
+            <!--end::Tables Widget 9-->
+        </div>
+        <!--end::Container-->
+    </div>
+    <!--end::Post-->
+</div>
+<!--end::Content-->
+#{ready("/assets/admin/controller/user/recharge.order.js")}
+<!--start::HOOK-->
+#{hook(\App\Consts\Hook::ADMIN_VIEW_ORDER_FOOTER)}
+<!--end::HOOK-->
+#{include file="../Footer.html"}

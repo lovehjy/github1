@@ -1,0 +1,90 @@
+#{include file="./Header.html"}
+<main class="tokyo-main tokyo-page" data-default-category="#{$categoryId}"
+      data-user-logged-in="#{if $user}1#{else}0#{/if}">
+    <section class="tokyo-shell">
+        <section class="tokyo-shop-layout">
+            <button type="button" class="tokyo-mobile-sidebar-backdrop" aria-label="#{t('关闭分类筛选')}"></button>
+            <aside class="panel tokyo-sidebar-panel">
+                <div class="panel-header tokyo-index-heading">
+                    <div class="tokyo-index-heading-copy">
+                        <span class="panel-kicker">Categories</span>
+                        <h2 class="panel-title tokyo-index-panel-title">#{t("商品分类")}</h2>
+                    </div>
+                    <button type="button" class="tokyo-mobile-sidebar-close" aria-label="#{t('关闭分类')}">
+                        <i class="fa-duotone fa-regular fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="panel-body">
+                    <div class="tokyo-category-tree" id="tokyo-category-tree">
+                        <div class="tokyo-tree-feedback">#{t("正在加载分类目录...")}</div>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="panel tokyo-catalog-panel">
+                <div class="panel-header tokyo-catalog-heading">
+                    <div class="tokyo-index-heading-copy">
+                        <span class="panel-kicker">Catalog</span>
+                        <h2 class="panel-title tokyo-current-name tokyo-index-panel-title">#{t("商品目录")}</h2>
+                    </div>
+                    <div class="tokyo-catalog-tools">
+                        <button type="button" class="tokyo-button tokyo-button-light tokyo-mobile-filter-trigger">
+                            <i class="fa-duotone fa-regular fa-sliders"></i>
+                            <span>#{t("筛选分类")}</span>
+                        </button>
+                        <div class="tokyo-search-combo">
+                            <label class="tokyo-searchbox tokyo-searchbox-combo">
+                                <i class="fa-duotone fa-regular fa-magnifying-glass"></i>
+                                <input class="item-search-input" type="search" placeholder="#{t('搜索商品关键词')}">
+                            </label>
+                            <button type="button" class="tokyo-button tokyo-button-dark item-search-trigger">
+                                <i class="fa-duotone fa-regular fa-magnifying-glass"></i>
+                                <span>#{t("搜索")}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body tokyo-catalog-body">
+                    <div class="tokyo-table-wrap">
+                        <div class="tokyo-table-loading" aria-hidden="true">
+                            <span class="tokyo-table-loading-spinner"></span>
+                            <span class="tokyo-table-loading-text">#{t("正在加载商品列表...")}</span>
+                        </div>
+                        <table class="tokyo-commodity-table">
+                            <colgroup>
+                                <col class="tokyo-commodity-col-main">
+                                <col class="tokyo-commodity-col-price">
+                                <col class="tokyo-commodity-col-stock">
+                                #{if $setting.show_sold == 1}
+                                <col class="tokyo-commodity-col-sold">
+                                #{/if}
+                                <col class="tokyo-commodity-col-action">
+                            </colgroup>
+                            <thead>
+                            <tr>
+                                <th>#{t("商品")}</th>
+                                <th>#{t("价格")}</th>
+                                <th>#{t("库存")}</th>
+                                #{if $setting.show_sold == 1}
+                                <th>#{t("销量")}</th>
+                                #{/if}
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody class="item-list">
+                            <tr class="tokyo-empty-row">
+                                <td colspan="5">#{t("请选择左侧分类，开始浏览商品。")}</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </section>
+    </section>
+</main>
+<script>
+    const _show_sold = "#{$setting.show_sold}";
+</script>
+#{ready("/app/View/User/Theme/Tokyo/Assets/Index.js?t=1.1")}
+#{include file="./Footer.html"}

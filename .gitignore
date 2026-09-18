@@ -1,0 +1,13 @@
+﻿**/runtime/
+**/cache/
+**/.DS_Store
+**/*.zip
+**/*.rar
+**/*.7z
+**/*.mp4
+**/*.mkv
+**/*.avi
+**/*.iso
+**/*.exe
+**/*.dll
+**/*.so

@@ -1,0 +1,204 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Service\Bind;
+
+
+use Kernel\Util\Date;
+use Kernel\Util\File;
+
+class Upload implements \App\Service\Upload
+{
+
+    /**
+     * @param string $path
+     * @param string $type
+     * @param int|null $userId
+     * @return string|null 撞全局唯一键(hash)时返回可复用的已有文件路径
+     */
+    public function add(string $path, string $type, ?int $userId = null): ?string
+    {
+        if (!is_file(BASE_PATH . $path)) {
+            return null;
+        }
+        $hash = md5_file(BASE_PATH . $path);
+        $upload = new \App\Model\Upload();
+        $upload->hash = $hash;
+        $upload->type = $type;
+        $upload->path = $path;
+        $upload->create_time = Date::current();
+        $userId && ($upload->user_id = $userId);
+
+        try {
+            $upload->save();
+        } catch (\Throwable $e) {
+            //唯一索引 `hash` 是全局的，去重却按用户隔离：别的账号(或管理员)传过同一张图时必撞 1062。
+            //这属于可预期冲突，不能让它冒成 500——前端只会显示一句“网络错误”(#头像上传)。
+            if (!self::isDuplicateHash($e)) {
+                throw $e;
+            }
+            $exists = \App\Model\Upload::query()->where("hash", $hash)->first()?->path;
+            //已有记录指向的文件还在，才值得复用；文件已被清掉时保留本次的副本(仅不入库)
+            return ($exists && $exists !== $path && is_file(BASE_PATH . $exists)) ? $exists : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * 是否为 hash 唯一键冲突(SQLSTATE 23000 / 1062)，其余异常一律放行上抛
+     * @param \Throwable $e
+     * @return bool
+     */
+    private static function isDuplicateHash(\Throwable $e): bool
+    {
+        return $e instanceof \Illuminate\Database\QueryException
+            && (string)$e->getCode() === "23000"
+            && str_contains($e->getMessage(), "1062");
+    }
+
+
+    /**
+     * @param string $hash
+     * @param int|null $userId 指定后仅在该用户自己的上传记录内去重(null=全局,保持旧行为)
+     * @return string|null
+     */
+    public function get(string $hash, ?int $userId = null): ?string
+    {
+        $query = \App\Model\Upload::query()->where("hash", $hash);
+        if ($userId !== null) {
+            $query->where("user_id", $userId);
+        }
+        return $query->first()?->path;
+    }
+
+    /**
+     * @param string $path
+     * @return void
+     */
+    public function remove(string $path, ?int $userId = null): void
+    {
+        if (!is_file(BASE_PATH . $path)) {
+            return;
+        }
+
+        $hash = md5_file(BASE_PATH . $path);
+        $query = \App\Model\Upload::query()->where("hash", $hash);
+        if ($userId !== null) {
+            //按归属删除：全局去重(add())可能把 $path 换成他人/管理员的文件，若不校验归属，
+            //传一张同内容的图再触发缩略失败就能删掉别人的文件。只有确属本人的记录才允许删。
+            $query->where("user_id", $userId);
+            if (!$query->exists()) {
+                return; //不是自己的记录：既不删库、也不碰磁盘文件
+            }
+        }
+        $query->delete(); //删除数据库
+        File::remove(BASE_PATH . $path);
+    }
+
+    public function handle($upload, $dir, $type, int $size = 10000, string $fileName = ''): mixed
+    {
+        if (!is_array($upload)) {
+            return "请选择文件";
+        }
+
+        //单文件处理
+        if (count($upload) == count($upload, 1)) {
+            $load = self::error($upload, $type, $size);
+            if (is_array($load)) {
+                //上传文件
+                return self::move($load, $dir, $fileName);
+            } else {
+                return $load;
+            }
+        } else {
+            //多文件初始化
+            $list = array();
+            //多文件处理
+            for ($i = 0; $i < count($upload); $i++) {
+
+                $load = self::error($upload[$i], $type, $size);
+                if (is_array($load)) {
+                    //上传文件
+                    $move = self::move($load, $dir, $fileName);
+                    //上传成功加入数组
+                    if (is_array($move)) {
+                        $list[] = $move;
+                    }
+                }
+
+            }
+            return $list;
+        }
+    }
+
+    //抛异常
+    private static function error($upload, $type, $size)
+    {
+        //异常代码处理
+        if ($upload['error'] > 0) {
+            switch ($upload['error']) {
+                case 1:
+                    $err_info = "文件上传失败";
+                    break;
+                case 2:
+                    $err_info = "文件太大,无法上传";
+                    break;
+                case 3:
+                    $err_info = "上传失败,文件可能损坏";
+                    break;
+                case 4:
+                    $err_info = "上传失败,请选择需要上传的文件";
+                    break;
+                case 6:
+                    $err_info = "上传失败,无写入权限";
+                    break;
+                case 7:
+                    $err_info = "上传失败,文件写入失败";
+                    break;
+                default:
+                    $err_info = "未知的上传错误";
+                    break;
+            }
+            return $err_info;
+        }
+        //文件类型处理
+        $exp = explode(".", (string)$upload['name']);
+
+        //判断文件数组是否大于2
+        if (count($exp) < 2) return "文件无后缀无法识别";
+
+        //最后一个值必定是后缀
+        $fix = $exp[count($exp) - 1];
+        if (!in_array(strtolower($fix), $type)) return '不支持的文件后缀「' . $fix . '」，仅支持：' . implode('、', $type);
+
+        //文件大小限制
+        $upload_size = $upload['size'] / 1024;
+        if ($upload_size > $size) return '文件太大';
+
+        return array('tmp' => $upload['tmp_name'], 'size' => $upload_size, 'name' => $upload['name'], 'fix' => $fix);
+    }
+
+    //开始处理文件
+    private static function move($array, $dir, $file_name)
+    {
+        //检测目录是否存在，不存在则创建目录
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+        //随机文件名(CSPRNG)。旧实现是明文时间戳+mt_rand(7位)，上传时刻可推、搜索空间仅 900 万且非密码学随机，
+        //公开可读的上传物(头像/封面/凭证)因此可被按时间枚举。与工单上传一致改用 random_bytes。
+        $names = bin2hex(random_bytes(16)) . '.' . $array['fix'];
+        if ($file_name != '') {
+            $uniqueName = $dir . '/' . $file_name;
+        } else {
+            //文件名生成
+            $uniqueName = $dir . '/' . $names;
+        }
+        if (move_uploaded_file($array['tmp'], $uniqueName)) {
+            return array('dir' => $uniqueName, 'size' => $array['size'], 'name' => $array['name'], 'new_name' => $names, 'ext' => $array['fix']);
+        } else {
+            return '文件上传失败';
+        }
+    }
+}

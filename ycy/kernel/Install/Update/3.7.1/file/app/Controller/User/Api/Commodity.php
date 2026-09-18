@@ -1,0 +1,290 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Controller\User\Api;
+
+
+use App\Controller\Base\API\User;
+use App\Entity\Query\Get;
+use App\Entity\Query\Save;
+use App\Interceptor\Business;
+use App\Interceptor\UserSession;
+use App\Interceptor\Waf;
+use App\Util\LangRecycle;
+use App\Service\Query;
+use App\Util\Client;
+use App\Util\Date;
+use App\Util\Ini;
+use App\Util\Str;
+use Illuminate\Database\Capsule\Manager as DB;
+use Illuminate\Database\Eloquent\Builder;
+use Kernel\Annotation\Inject;
+use Kernel\Annotation\Interceptor;
+use Kernel\Context\Interface\Request;
+use Kernel\Exception\JSONException;
+use Kernel\Waf\Filter;
+
+#[Interceptor([Waf::class, UserSession::class, Business::class], Interceptor::TYPE_API)]
+class Commodity extends User
+{
+    #[Inject]
+    private Query $query;
+
+    /**
+     * @return array
+     */
+    public function data(): array
+    {
+        $map = $_POST;
+        $map['equal-owner'] = $this->getUser()->id;
+        $get = new Get(\App\Model\Commodity::class);
+        $get->setPaginate((int)$this->request->post("page"), (int)$this->request->post("limit"));
+        $get->setOrderBy(...$this->query->getOrderBy($map, "sort", "asc"));
+        $get->setWhere($map);
+
+        $data = $this->query->get($get, function (Builder $builder) {
+            return $builder
+                ->where("owner", $this->getUser()->id)
+                ->with(['category'])
+                ->withCount([
+                    'card as card_count' => function (Builder $builder) {
+                        $builder->where("status", 0);
+                    },
+                    'card as card_success_count' => function (Builder $builder) {
+                        $builder->where("status", 1);
+                    },
+                    //商品总盈利
+                    'order as order_all_amount' => function (Builder $relation) {
+                        $relation->where("status", 1)->select(\App\Model\Order::query()->raw("COALESCE(sum(amount),0) as order_all_amount"));
+                    },
+                    //过去7天内盈利
+                    'order as order_week_amount' => function (Builder $relation) {
+                        $relation->whereBetween('create_time', [Date::weekDay(1, Date::TYPE_START), Date::weekDay(7, Date::TYPE_END)])->where("status", 1)->select(\App\Model\Order::query()->raw("COALESCE(sum(amount),0) as order_week_amount"));
+                    },
+                    //昨日盈利
+                    'order as order_yesterday_amount' => function (Builder $relation) {
+                        $relation->whereBetween('create_time', [Date::calcDay(-1), Date::calcDay(-1, Date::TYPE_END)])->where("status", 1)->select(\App\Model\Order::query()->raw("COALESCE(sum(amount),0) as order_yesterday_amount"));
+                    },
+                    //今日盈利
+                    'order as order_today_amount' => function (Builder $relation) {
+                        $relation->whereBetween('create_time', [Date::calcDay(), Date::calcDay(0, Date::TYPE_END)])->where("status", 1)->select(\App\Model\Order::query()->raw("COALESCE(sum(amount),0) as order_today_amount"));
+                    }
+                ]);
+        });
+
+        foreach ($data['list'] as &$item) {
+            $item['share_url'] = Client::getUrl() . "/item/{$item['id']}";
+        }
+
+        return $this->json(data: $data);
+    }
+
+
+    /**
+     * @param Request $request
+     * @return array
+     * @throws JSONException
+     */
+    public function save(Request $request): array
+    {
+        $map = $request->post(flags: Filter::NORMAL);
+        $user = $this->getUser();
+        $id = isset($map['id']) ? (int)$map['id'] : 0;
+        $isCreate = $id <= 0;
+        $commodity = null;
+
+        if ($id > 0) {
+            $commodity = \App\Model\Commodity::query()
+                ->where("owner", $user->id)
+                ->find($id);
+            if (!$commodity) {
+                throw new JSONException("该商品不存在");
+            }
+        }
+
+        if ($isCreate && !isset($map['category_id'])) {
+            throw new JSONException("请选择商品分类");
+        }
+
+        if (($isCreate && !isset($map['name'])) || (isset($map['name']) && trim((string)$map['name']) === '')) {
+            throw new JSONException("商品名称不能为空哦(｡￫‿￩｡)");
+        }
+
+        if ((isset($map['price']) && (float)$map['price'] < 0)
+            || (isset($map['user_price']) && (float)$map['user_price'] < 0)) {
+            throw new JSONException("商品单价不能低于0哦(｡￫‿￩｡)");
+        }
+
+        // widget 来自表单的 widget 组件，提交前恒做 encodeURIComponent（防输入清洗层伤 JSON）。
+        // 旧版靠清洗层的隐式二次 urldecode 还原，清洗层修正（#833）后在消费点显式解码，
+        // 与后台商品保存、插件/主题配置保存的惯例一致。
+        if (isset($map['widget']) && is_string($map['widget'])) {
+            $map['widget'] = urldecode($map['widget']);
+        }
+
+        //create new
+        if ($isCreate) {
+            unset($map['id']);
+            $map['code'] = strtoupper(Str::generateRandStr(16));
+        }
+
+        $touchesSeckill = array_key_exists('seckill_status', $map)
+            || array_key_exists('seckill_start_time', $map)
+            || array_key_exists('seckill_end_time', $map);
+        $seckillStatus = isset($map['seckill_status'])
+            ? (int)$map['seckill_status']
+            : (int)($commodity?->seckill_status ?? 0);
+        if ($touchesSeckill && $seckillStatus === 1) {
+            $seckillStart = (string)($map['seckill_start_time'] ?? $commodity?->seckill_start_time ?? '');
+            $seckillEnd = (string)($map['seckill_end_time'] ?? $commodity?->seckill_end_time ?? '');
+            if ($seckillStart === '' || $seckillEnd === '') {
+                throw new JSONException("您开启了秒杀功能，所以请指定秒杀的开始时间和结束时间哦(｡￫‿￩｡)");
+            }
+            if (strtotime($seckillEnd) < strtotime($seckillStart)) {
+                throw new JSONException("秒杀结束时间不能低于秒杀开始时间哦，请认真指定秒杀结束时间(｡￫‿￩｡)");
+            }
+        }
+
+        $touchesDraft = array_key_exists('draft_status', $map) || array_key_exists('draft_premium', $map);
+        $draftStatus = isset($map['draft_status'])
+            ? (int)$map['draft_status']
+            : (int)($commodity?->draft_status ?? 0);
+        if ($touchesDraft && $draftStatus === 1) {
+            $draftPremium = $map['draft_premium'] ?? $commodity?->draft_premium ?? '';
+            if ($draftPremium === '') {
+                throw new JSONException("您开启了预选卡密功能，请填写预选时的溢价(｡￫‿￩｡)");
+            }
+        }
+
+        if (isset($map['sort'])) {
+            if ($map['sort'] < 1000) {
+                throw new JSONException("排序最低设置1000");
+            }
+
+            if ($map['sort'] > 60000) {
+                throw new JSONException("排序最高设置60000");
+            }
+        }
+
+        //解析配置文件
+        if (array_key_exists('config', $map) && $map['config'] !== '') {
+            Ini::toArray((string)$map['config']);
+        }
+
+        //校验会员等级独立配置，脏数据入库会导致登录用户的商品列表整体报错
+        if (array_key_exists('level_price', $map) && $map['level_price'] !== '') {
+            \App\Model\Commodity::validateLevelPrice((string)$map['level_price']);
+        }
+
+        // 商户可保存的字段白名单：只放前台商品编辑弹窗真正提交的列。
+        // 关键在于**排除**所有平台专属列——shared_*（平台货源对接标识与凭据引用）、
+        // factory_price（成本价）、api_status/recommend/hide/inventory_sync、pay_intercept、
+        // dock_*、asyn_request_*。这些只应由后台（站长）设置。
+        // 缺了这层白名单，商户就能把公开详情里读到的 shared_id/shared_code 写到自己 0 元商品上，
+        // 下单时系统仍用平台货源账户向上游代付进货，造成平台经济损失。见 issue #912。
+        // 与后台 Admin\Api\Commodity::save() 的 $allowed 同一套做法，只是这里刻意收窄。
+        $allowed = [
+            'category_id', 'cover', 'name', 'description', 'price', 'user_price', 'sort', 'status',
+            'delivery_way', 'delivery_auto_mode', 'delivery_message', 'stock', 'contact_type',
+            'password_status', 'coupon', 'seckill_status', 'seckill_start_time', 'seckill_end_time',
+            'draft_status', 'draft_premium', 'inventory_hidden', 'leave_message', 'send_email',
+            'only_user', 'purchase_count', 'widget', 'level_price', 'level_disable', 'minimum',
+            'maximum', 'config',
+        ];
+
+        $save = new Save(\App\Model\Commodity::class);
+        $save->setMap($map, $allowed);
+        $save->addForceMap("owner", $user->id);
+        // code 是系统生成的商品编码，不在白名单里，新建时强制写入（同后台做法）。
+        // 新建路径靠它回查自增 id，见下方。
+        if ($isCreate) {
+            $save->addForceMap("code", (string)$map['code']);
+        }
+        // 表格中的上下架开关只提交 id/status。只有请求明确携带 config 时才覆盖，
+        // 避免一次快捷操作把商品 SKU 等高级配置清空。
+        if (array_key_exists('config', $map)) {
+            $save->addForceMap("config", (string)$map['config']);
+        }
+        $save->enableCreateTime();
+        $saved = DB::transaction(function () use ($save, $map, $id, $user) {
+            // Keep the lock order identical to category deletion: target
+            // Category first, then the existing Commodity row when editing.
+            if (array_key_exists('category_id', $map)) {
+                $category = \App\Model\Category::query()
+                    ->where('owner', (int)$user->id)
+                    ->where('id', (int)$map['category_id'])
+                    ->lockForUpdate()
+                    ->first();
+                if (!$category) {
+                    throw new JSONException('分类不存在');
+                }
+            }
+
+            if ($id > 0) {
+                $lockedCommodity = \App\Model\Commodity::query()
+                    ->where('owner', (int)$user->id)
+                    ->where('id', $id)
+                    ->lockForUpdate()
+                    ->first();
+                if (!$lockedCommodity) {
+                    throw new JSONException('该商品不存在');
+                }
+            }
+
+            return $this->query->save($save);
+        });
+        if (!$saved) {
+            throw new JSONException("保存失败，请检查信息填写是否完整");
+        }
+        //新建路径 Query::save() 只返回 bool，靠上面生成的 code 回查自增 id
+        $changedId = $isCreate
+            ? (int)\App\Model\Commodity::query()->where('code', (string)$map['code'])->value('id')
+            : $id;
+        if ($changedId > 0) {
+            $ebIds = [$changedId];
+            $ebAction = $isCreate ? 'create' : 'update';
+            hook(\App\Consts\Hook::COMMODITY_CHANGE_AFTER, $ebIds, $ebAction, $commodity);
+
+            //换下来的旧文案连同它的翻译一起回收，别让废词条堆着（GitHub #888）
+            if ($commodity !== null) {
+                $before = LangRecycle::commodityTexts($commodity);
+                $after = LangRecycle::commodityTexts(\App\Model\Commodity::query()->find($changedId));
+                LangRecycle::release(array_diff($before, $after));
+            }
+        }
+        return $this->json(200, '（＾∀＾）保存成功');
+    }
+
+
+    /**
+     * @return array
+     * @throws JSONException
+     */
+    public function del(): array
+    {
+
+        $id = (int)$_POST['id'];
+
+        if ($id == 0) {
+            throw new JSONException("请选择删除的商品");
+        }
+
+        $commodity = \App\Model\Commodity::query()->where("owner", $this->getUser()->id)->find($id);
+
+        if (!$commodity) {
+            throw new JSONException("商品不存在");
+        }
+
+        //删完就查不到了，先把文案抓在手上
+        $doomedTexts = LangRecycle::commodityTexts($commodity);
+
+        $commodity->delete();
+        $ebIds = [$id];
+        $ebAction = 'delete';
+        $ebBefore = null;
+        hook(\App\Consts\Hook::COMMODITY_CHANGE_AFTER, $ebIds, $ebAction, $ebBefore);
+        LangRecycle::release($doomedTexts);
+
+        return $this->json(200, '（＾∀＾）移除成功');
+    }
+}

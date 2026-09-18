@@ -1,0 +1,61 @@
+#{include file="../Header.html"}
+
+<style>
+    .md-cash-wechat-qr {
+        display: grid;
+        min-height: 196px;
+        place-items: center;
+    }
+
+    @media (max-width: 991.98px) {
+        html[data-admin-layout="mobile"] .md-cash-payment-detail .md-detail__row {
+            grid-template-columns: minmax(82px, 32%) minmax(0, 1fr);
+        }
+
+        html[data-admin-layout="mobile"] .md-cash-payment-detail .md-detail__value {
+            overflow-wrap: anywhere;
+        }
+
+        html[data-admin-layout="mobile"] .md-cash-payment-layer .layui-layer-btn a {
+            min-width: 0;
+            padding-inline: 8px;
+            text-align: center;
+        }
+    }
+</style>
+
+<!--begin::Content-->
+<div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+    <!--begin::Toolbar-->
+    #{include file="../Toolbar.html"}
+    <!--end::Toolbar-->
+    <!--begin::Post-->
+    <div class="post d-flex flex-column-fluid" id="kt_post">
+        <!--begin::Container-->
+        <div id="kt_content_container" class="container-fluid">
+            <!--begin::Tables Widget 9-->
+            <div class="card mb-5 mb-xl-8">
+                <!--begin::Header-->
+                <div class="card-header">
+                    <div class="card-toolbar">
+                        <button class="btn btn-sm btn-light-primary settlement me-3"><i class="fa-duotone fa-regular fa-money-bill-transfer"></i>
+                            #{t("一键自动结算")}
+                        </button>
+                    </div>
+                </div>
+                <!--end::Header-->
+                <div class="card-body py-3">
+                    <table id="cash-table"></table>
+                </div>
+            </div>
+
+            <!--end::Tables Widget 9-->
+        </div>
+        <!--end::Container-->
+    </div>
+    <!--end::Post-->
+</div>
+<!--end::Content-->
+
+#{ready("/assets/admin/controller/user/cash.js")}
+#{include file="../Footer.html"}

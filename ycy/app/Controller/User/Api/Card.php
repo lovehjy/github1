@@ -1,0 +1,359 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Controller\User\Api;
+
+use App\Controller\Base\API\User;
+use App\Entity\Query\Delete;
+use App\Entity\Query\Get;
+use App\Entity\Query\Save;
+use App\Interceptor\Business;
+use App\Interceptor\UserSession;
+use App\Interceptor\Waf;
+use App\Service\Query;
+use App\Util\Date;
+use App\Util\Ini;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Kernel\Annotation\Inject;
+use Kernel\Annotation\Interceptor;
+use Kernel\Context\Interface\Request;
+use Kernel\Exception\JSONException;
+use Kernel\Waf\Filter;
+use Kernel\Waf\Firewall;
+
+#[Interceptor([Waf::class, UserSession::class, Business::class], Interceptor::TYPE_API)]
+class Card extends User
+{
+    #[Inject]
+    private Query $query;
+
+    /**
+     * @return array
+     */
+    public function data(): array
+    {
+        $get = new Get(\App\Model\Card::class);
+        $get->setPaginate((int)$this->request->post("page"), (int)$this->request->post("limit"));
+        $get->setWhere($_POST);
+        $data = $this->query->get($get, function (Builder $builder) {
+            return $builder->where("owner", $this->getUser()->id)->with([
+                'commodity' => function (Relation $relation) {
+                    $relation->select(["id", "cover", "name"]);
+                },
+                'order' => function (Relation $relation) {
+                    $relation->select(["id", "trade_no"]);
+                }
+            ]);
+        });
+
+        return $this->json(data: $data);
+    }
+
+    /**
+     * @param int $commodityId
+     * @return array
+     * @throws JSONException
+     */
+    public function sku(int $commodityId): array
+    {
+        $commodity = \App\Model\Commodity::query()->where("owner", $this->getUser()->id)->find($commodityId);
+        if (!$commodity) {
+            throw new JSONException("商品不存在");
+        }
+
+        $config = Ini::toArray($commodity->config ?: "");
+
+        return $this->json(data: $config);
+    }
+
+    /**
+     * @param Request $request
+     * @return array
+     * @throws JSONException
+     */
+    public function save(Request $request): array
+    {
+        $commodityId = $request->post("commodity_id", Filter::INTEGER);
+        $raceGetMode = $request->post("race_get_mode", Filter::INTEGER);
+        $race = $raceGetMode == 1 ? $request->post("race_input", Filter::NORMAL) : $request->post("race", Filter::NORMAL);
+        $sku = $request->post("sku", Filter::NORMAL) ?: [];
+        $cardType = $request->post("card_type", Filter::INTEGER);
+
+        if ($commodityId == 0) {
+            throw new JSONException('(`･ω･´)请选择商品');
+        }
+
+        if (!\App\Model\Commodity::query()->where("owner", $this->getUser()->id)->where("id", $commodityId)->exists()) {
+            throw new JSONException('(`･ω･´)商品不存在');
+        }
+
+        $rawCards = $request->unsafePost("secret");
+        if (!is_string($rawCards)) {
+            throw new JSONException('(`･ω･´)卡密信息格式不正确');
+        }
+        // PHP has already URL-decoded form fields once. Keep literal strings
+        // such as "%0A" intact instead of decoding them into extra card rows.
+        $cards = trim((string)Firewall::instance()->xssKillerLiteral($rawCards));
+
+        //进行批量插入
+        if ($cards == '') {
+            throw new JSONException('(`･ω･´)请至少添加1条卡密信息哦');
+        }
+
+        $cards = preg_split('/\r\n|\n|\r/', $cards) ?: [];
+        $count = count($cards);
+
+        $success = 0;
+        $error = 0;
+        $date = Date::current();
+
+        $unique = (bool)$_POST['unique'];
+        $userId = $this->getUser()->id;
+
+        foreach ($cards as $card) {
+            $cardt = trim(trim($card), PHP_EOL);
+            if ($cardt == "") {
+                $error++; //error ++
+                continue;
+            }
+
+            $cardObj = new \App\Model\Card();
+
+            if ($cardType == 0) {
+                $cardObj->secret = $cardt;
+            } else {
+                //分割
+                $list = explode("║", $cardt);
+                if (count($list) < 2) {
+                    $error++; //error ++
+                    continue;
+                }
+                $cardObj->secret = trim($list[0]);
+
+                //预选信息
+                if (isset($list[1])) {
+                    $cardObj->draft = trim($list[1]);
+                }
+
+                //独立加价
+                if (isset($list[2])) {
+                    $cardObj->draft_premium = (float)$list[2];
+                }
+            }
+
+            if ($unique) {
+                if (\App\Model\Card::query()->where("owner", $userId)->where("secret", $cardObj->secret)->first()) {
+                    $error++; //error ++
+                    continue;
+                }
+            }
+
+            $cardObj->commodity_id = $commodityId;
+            $cardObj->owner = $userId;
+            if (isset($_POST['note'])) {
+                $cardObj->note = $_POST['note'];
+            }
+            $cardObj->status = 0;
+
+
+            $cardObj->sku = $sku;
+            $cardObj->create_time = $date;
+
+            if ($race) {
+                $cardObj->race = $race;
+            }
+
+            try {
+                $cardObj->save();
+                $success++;
+            } catch (\Exception $e) {
+                $error++; //error ++
+            }
+        }
+
+        if ($success > 0) {
+            $ebIds = [$commodityId];
+            $ebReason = 'import';
+            hook(\App\Consts\Hook::CARD_CHANGE_AFTER, $ebIds, $ebReason);
+        }
+        return $this->json(200, "共计导入:{$count}张卡密，成功:{$success}张，失败：{$error}张");
+    }
+
+    /**
+     * 卡密 id -> 受影响的商品 id（去重）。删除路径必须在删之前调用。
+     *
+     * @param int[]|string[] $cardIds
+     * @return int[]
+     */
+    private static function commodityIdsOfCards(array $cardIds): array
+    {
+        $cardIds = array_values(array_filter(array_map('intval', $cardIds), static fn(int $v): bool => $v > 0));
+        if ($cardIds === []) {
+            return [];
+        }
+        return \App\Model\Card::query()
+            ->whereIn('id', $cardIds)
+            ->distinct()
+            ->pluck('commodity_id')
+            ->map(static fn($id): int => (int)$id)
+            ->filter(static fn(int $id): bool => $id > 0)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array
+     * @throws JSONException
+     */
+    public function edit(): array
+    {
+        $map = $_POST;
+
+        if (!isset($map['id'])) {
+            throw new JSONException("卡密不存在");
+        }
+
+        $card = \App\Model\Card::query()->where("id", $map['id'])->where("owner", $this->getUser()->id)->first();
+        if (!$card) {
+            throw new JSONException("卡密不存在");
+        }
+
+        //已售卡密(status=1)不得改动交付内容/状态：改 secret=交付后篡改，翻回 status=0=同卡二次交付（F-35）。
+        //与兄弟方法 lock/unlock/sell 的 status!=1 守卫对齐；已售卡最多只允许改内部备注 note。
+        $whitelist = (int)$card->status === 1
+            ? ["note"]
+            : ["draft", "secret", "note", "draft_premium", "status"];
+
+        $save = new Save(\App\Model\Card::class);
+        $save->setMap($map, $whitelist);
+        $save = $this->query->save($save);
+        if (!$save) {
+            throw new JSONException("保存失败");
+        }
+        $ebIds = self::commodityIdsOfCards([(int)$map['id']]);
+        $ebReason = 'edit';
+        hook(\App\Consts\Hook::CARD_CHANGE_AFTER, $ebIds, $ebReason);
+        return $this->json(200, '（＾∀＾）保存成功');
+    }
+
+
+    /**
+     * @return array
+     */
+    public function lock(): array
+    {
+        $list = (array)$_POST['list'];
+        \App\Model\Card::query()->whereIn('id', $list)->where("owner", $this->getUser()->id)->whereRaw("status!=1")->update(['status' => 2]);
+        $ebIds = self::commodityIdsOfCards($list);
+        $ebReason = 'lock';
+        hook(\App\Consts\Hook::CARD_CHANGE_AFTER, $ebIds, $ebReason);
+        return $this->json(200, '锁定成功');
+    }
+
+    /**
+     * @return array
+     */
+    public function unlock(): array
+    {
+        $list = (array)$_POST['list'];
+        \App\Model\Card::query()->whereIn('id', $list)->where("owner", $this->getUser()->id)->whereRaw("status!=1")->update(['status' => 0]);
+        $ebIds = self::commodityIdsOfCards($list);
+        $ebReason = 'unlock';
+        hook(\App\Consts\Hook::CARD_CHANGE_AFTER, $ebIds, $ebReason);
+        return $this->json(200, '解锁成功');
+    }
+
+    /**
+     * @return array
+     */
+    public function del(): array
+    {
+        $list = (array)$_POST['list'];
+        //删完就查不到了，商品 id 提前取
+        $affected = self::commodityIdsOfCards($list);
+        \App\Model\Card::query()->whereIn('id', $list)->where("owner", $this->getUser()->id)->delete();
+        $ebReason = 'delete';
+        hook(\App\Consts\Hook::CARD_CHANGE_AFTER, $affected, $ebReason);
+        return $this->json(200, '（＾∀＾）移除成功');
+    }
+
+
+    /**
+     * @return array
+     */
+    public function sell(): array
+    {
+        $list = (array)$_POST['list'];
+        \App\Model\Card::query()->whereIn('id', $list)->where("owner", $this->getUser()->id)->whereRaw("status!=1")->update(['status' => 1, 'purchase_time' => Date::current()]);
+        $ebIds = self::commodityIdsOfCards($list);
+        $ebReason = 'sell';
+        hook(\App\Consts\Hook::CARD_CHANGE_AFTER, $ebIds, $ebReason);
+        return $this->json(200, '操作成功');
+    }
+
+    /**
+     * 导出
+     * @return string
+     */
+    public function export(): string
+    {
+        $map = $_GET;
+        $exportStatus = $map['export_status'] ?? null;
+        $exportNum = (int)($map['export_num'] ?? 0);
+        $note = ($map['note'] ?? '') ?: null;
+
+        unset($map['export_status']);
+        unset($map['export_num']);
+        unset($map['equal-owner']);
+
+        $userId = (int)$this->getUser()->id;
+        $get = new Get(\App\Model\Card::class);
+        $get->setWhere($map);
+
+        if ($exportNum > 0) {
+            $get->setPaginate(1, $exportNum);
+        }
+        $data = $this->query->get($get, function (Builder $builder) use ($userId) {
+            return $builder->where("owner", $userId);
+        });
+
+        $card = '';
+        $ids = [];
+        foreach ($data['list'] as $d) {
+            $card .= $d['secret'] . PHP_EOL;
+            $ids[] = $d['id'];
+        }
+
+        //$ids 已被上面的 owner 闭包限定为当前商户自己的卡密；写分支再各自带上 owner 兜底，
+        //让导出与后续写操作共享同一受控范围，避免任何一处漏掉归属约束就被越权改动。
+        if ($note !== null && $ids !== []) {
+            \App\Model\Card::query()->where("owner", $userId)->whereIn('id', $ids)->update(['note' => $note]);
+        }
+
+        if ($ids !== []) {
+            if ($exportStatus == 1) {
+                //锁定卡密
+                try {
+                    \App\Model\Card::query()->where("owner", $userId)->whereIn('id', $ids)->whereRaw("status!=1")->update(['status' => 2]);
+                } catch (\Exception $e) {
+                }
+            } elseif ($exportStatus == 2) {
+                //删除卡密
+                try {
+                    $deleteBatchEntity = new Delete(\App\Model\Card::class, $ids);
+                    $deleteBatchEntity->setWhere("owner", "=", $userId);
+                    $this->query->delete($deleteBatchEntity);
+                } catch (\Exception $e) {
+                }
+            } elseif ($exportStatus == 3) {
+                \App\Model\Card::query()->where("owner", $userId)->whereIn('id', $ids)->whereRaw("status!=1")->update(['status' => 1, 'purchase_time' => Date::current()]);
+            }
+        }
+
+        header('Content-Type:application/octet-stream');
+        header('Content-Transfer-Encoding:binary');
+        header('Content-Disposition:attachment; filename=卡密导出(' . count($data['list']) . ')-' . Date::current() . '.txt');
+        return $card;
+    }
+}

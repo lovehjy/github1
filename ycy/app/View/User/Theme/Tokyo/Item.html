@@ -1,0 +1,182 @@
+#{include file="./Header.html"}
+#{item_var($item)}
+<main class="tokyo-main">
+    <section class="tokyo-shell">
+        <div class="panel tokyo-item-panel">
+            <div class="panel-body">
+                <div class="row g-4 align-items-stretch">
+                    <div class="col-12 col-lg-6 d-flex">
+                        <div class="tokyo-item-cover-card w-100">
+                            <button type="button"
+                                    class="tokyo-item-cover-trigger"
+                                    data-image="#{$item.cover}"
+                                    data-title="#{$item.name|strip_tags|strip|escape:'html'}"
+                                    aria-label="#{t('查看原图')}">
+                                <img src="#{$item.cover}" alt="#{$item.name|strip_tags|strip|escape:'html'}" class="item-cover">
+                                <span class="tokyo-item-cover-hint">
+                                    <i class="fa-duotone fa-regular fa-expand"></i>
+                                    <span>#{t("查看原图")}</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-lg-6 d-flex">
+                        <div class="w-100 tokyo-item-form-wrap">
+                            <h1 class="tokyo-item-inline-title">#{$item.name}</h1>
+
+                            <div class="tokyo-item-badges">
+                                #{if $item.seckill_status == 1}
+                                    <span class="badge-soft snap-up" style="display: none;"></span>
+                                #{/if}
+                                <span class="badge-soft badge-soft-success">#{if $item.delivery_way == 0}#{t("自动发货")}#{else}#{t("在线发货")}#{/if}</span>
+                                #{if $setting.show_sold == 1}
+                                <span class="badge-soft badge-soft-primary">#{t("已售")} #{$item.order_sold}</span>
+                                #{/if}
+                                <span class="badge-soft badge-soft-success item-stock">#{t("库存")} #{$item.stock}</span>
+                                <span class="badge-soft badge-soft-info shared-button">
+                                    <i class="fa-duotone fa-regular fa-share-from-square"></i>
+                                    #{t("分享")}
+                                </span>
+                            </div>
+
+                            <div class="tokyo-item-price abacus">
+                                <div class="price"><i class="fa-duotone fa-regular fa-spinner-third icon-spin fs-6"></i></div>
+                            </div>
+
+                            <form method="post" class="vstack gap-3 tokyo-form-stack">
+                                #{if !empty($item.config.category)}
+                                    <div class="tokyo-field">
+                                        <label class="form-label mb-1">#{t("宝贝类型")}</label>
+                                        <div class="sku-list">
+                                            #{foreach $item.config.category as $race => $price}
+                                                <a class="switch-race sku has-money #{if $price@first}is-primary#{/if}"
+                                                   data-sku="#{$race|escape:'html'}"
+                                                   data-price="#{$price}"
+                                                   href="javascript:void(0);"><span class="sku-label">#{$race|escape:'html'}</span><span class="badge-money">#{$config.currency_symbol}#{$price}</span></a>
+                                            #{/foreach}
+                                        </div>
+                                    </div>
+                                #{/if}
+
+                                #{if !empty($item.config.sku)}
+                                    #{foreach $item.config.sku as $name => $sku}
+                                        <div class="tokyo-field">
+                                            <label class="form-label mb-1">#{$name|escape:'html'}</label>
+                                            <div class="sku-list">
+                                                #{foreach $sku as $key => $price}
+                                                    <a class="switch-sku sku #{if $price > 0}has-money#{/if} #{if $price@first}is-primary#{/if}"
+                                                       data-sku="#{$name|escape:'html'}"
+                                                       data-value="#{$key|escape:'html'}" data-price="#{$price}"
+                                                       href="javascript:void(0);"><span class="sku-label">#{$key|escape:'html'}</span>#{if $price > 0}<span class="badge-money">+#{$config.currency_symbol}#{$price}</span>#{/if}</a>
+                                                #{/foreach}
+                                            </div>
+                                        </div>
+                                    #{/foreach}
+                                #{/if}
+
+                                #{if $item.draft_status == 1}
+                                    <div class="tokyo-field">
+                                        <input type="hidden" name="card_id" class="form-control">
+                                        <label class="form-label mb-1">#{t("自选账号")}</label>
+                                        <button type="button" class="optional-card">
+                                            <i class="fa-duotone fa-regular fa-address-card"></i>
+                                            <span>#{t("未自选，将随机发货")}</span>
+                                        </button>
+                                    </div>
+                                #{/if}
+
+                                #{if !$user}
+                                    <div class="tokyo-field">
+                                        <label class="form-label mb-1">#{contact_type_msg($item.contact_type)}</label>
+                                        <input type="text" name="contact" class="form-control"
+                                               placeholder="#{t('请输入您的')}#{contact_type_msg($item.contact_type)}">
+                                    </div>
+                                #{/if}
+
+                                #{if $item.coupon == 1}
+                                    <div class="tokyo-field">
+                                        <label class="form-label mb-1">#{t("优惠券")}</label>
+                                        <input type="text" class="form-control" name="coupon"
+                                               placeholder="#{t('优惠券代码，没有则不填')}">
+                                    </div>
+                                #{/if}
+
+                                #{widget_render($item.widget)}
+
+                                #{if $item.password_status == 1}
+                                    <div class="tokyo-field">
+                                        <label class="form-label mb-1">#{t("查询密码")}</label>
+                                        <input type="password" class="form-control" name="password"
+                                               placeholder="#{t('设置查询订单的密码')}">
+                                    </div>
+                                #{/if}
+
+                                <div class="tokyo-field">
+                                    <label class="form-label mb-1">#{t("购买数量")}</label>
+                                    <div class="input-group qty-group">
+                                        <button type="button" class="change-num-sub">
+                                            <i class="fa-duotone fa-regular fa-minus"></i>
+                                        </button>
+                                        <input type="number" class="form-control text-center" name="num"
+                                               value="#{if $item.minimum > 0}#{$item.minimum}#{else}1#{/if}">
+                                        <button type="button" class="change-num-add">
+                                            <i class="fa-duotone fa-regular fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                #{if $item.trade_captcha == 1}
+                                    <div class="tokyo-field">
+                                        <label class="form-label mb-1">#{t("人机验证")}</label>
+                                        <div class="input-group tokyo-captcha-group">
+                                            <input type="text" class="form-control captcha-input" placeholder="#{t('图形验证码')}"
+                                                   name="captcha">
+                                            <div class="input-group-append">
+                                                <img class="input-group-text captcha-img" src="/user/captcha/image?action=trade"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                #{/if}
+
+                                <div class="cash-pay" style="display: none;">
+                                    <label class="form-label mb-2"><i class="fa-duotone fa-regular fa-cart-shopping"></i> #{t("付款")}</label>
+                                    #{if $item.only_user == 1}
+                                        #{if !$user}
+                                            <div class="tokyo-login-required-pay">
+                                                <div class="tokyo-login-required-copy">
+                                                    <strong>#{t("该商品仅限会员购买")}</strong>
+                                                    <span>#{t("登录后即可查看付款方式并继续下单。")}</span>
+                                                </div>
+                                                <a class="tokyo-button tokyo-button-dark" href="/user/authentication/login?goto=#{$item.share_url}">
+                                                    <i class="fa-duotone fa-regular fa-right-to-bracket"></i>
+                                                    <span>#{t("去登录")}</span>
+                                                </a>
+                                            </div>
+                                        #{else}
+                                            <div class="pay-list"></div>
+                                        #{/if}
+                                    #{else}
+                                        <div class="pay-list"></div>
+                                    #{/if}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel tokyo-description-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">#{t("宝贝详情")}</h2>
+            </div>
+            <div class="panel-body tokyo-description-body">
+                #{$item.description}
+            </div>
+        </div>
+    </section>
+</main>
+#{ready("/assets/user/controller/index/item.js")}
+#{ready("/app/View/User/Theme/Tokyo/Assets/Item.js")}
+#{include file="./Footer.html"}

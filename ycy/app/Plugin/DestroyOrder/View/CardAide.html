@@ -1,0 +1,46 @@
+<button class="btn btn-sm btn-light-danger destroy-card me-3"><i class="fa-duotone fa-regular fa-trash-can"></i>
+    销毁选中卡密
+</button>
+<script>
+
+    ready(() => {
+
+
+        const table = $("#card-table");
+        const boxId = "destroy-card-cascade";
+
+        $(".destroy-card").click(function () {
+            const ids = util.idObjToList(table.bootstrapTable('getSelections'));
+            if (ids.length == 0) {
+                layer.msg("请至少勾选1张卡密进行操作！");
+                return;
+            }
+
+            //同上：勾选状态要在弹层关闭之前取，then() 里 DOM 已经没了
+            let cascade = false;
+
+            message.ask(
+                "你确认要永久性删除这些卡密吗？这是极度危险操作，这将影响到整个系统的数据统计以及累计，请三思而后行。"
+                + "<label style='display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;font-size:14px;cursor:pointer'>"
+                + "<input type='checkbox' id='" + boxId + "' style='width:16px;height:16px;cursor:pointer'>"
+                + "<span>同时删除卡密所属的订单</span></label>"
+                + "<div style='margin-top:8px;font-size:12px;color:#b98f13'>勾选后，同一订单下的其它卡密也会一并删除，否则会留下指向已删订单的孤儿卡密。</div>",
+                () => {
+                    $.post("/plugin/DestroyOrder/api/delCard", {list: ids, cascade: cascade ? 1 : 0}, res => {
+                        const n = res.data || {};
+                        message.success(res.msg + `（卡密 ${Number(n.card || 0)} 张${cascade ? `，订单 ${Number(n.order || 0)} 笔` : ''}）`);
+                        table.bootstrapTable('refresh', {silent: true});
+                    });
+                },
+                "您确定吗？",
+                "确定",
+                {
+                    preConfirm: () => {
+                        cascade = !!document.getElementById(boxId)?.checked;
+                        return true;
+                    }
+                }
+            );
+        });
+    });
+</script>

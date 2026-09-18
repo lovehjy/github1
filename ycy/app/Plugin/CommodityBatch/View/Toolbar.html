@@ -1,0 +1,95 @@
+<button class="btn btn-sm btn-light-primary commodity-batch-price me-3">
+    <i class="fa-duotone fa-regular fa-money-bill-trend-up"></i> 批量改价
+</button>
+
+<script>
+    ready(() => {
+        const table = $("#commodity-table");
+
+        // 三个价格字段：字段名 / 展示名
+        const fields = [
+            {key: 'price', label: '商品单价'},
+            {key: 'user_price', label: '会员价'},
+            {key: 'factory_price', label: '成本价'}
+        ];
+
+        // 生成弹窗表单 HTML
+        const rowHtml = f => `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+                <span style="width:70px;text-align:right;font-size:14px">${f.label}</span>
+                <select class="form-select form-select-sm cb-mode" data-field="${f.key}" style="width:130px">
+                    <option value="0">不修改</option>
+                    <option value="1">设为固定值</option>
+                    <option value="2">按比例%调整</option>
+                    <option value="3">按金额加减</option>
+                </select>
+                <input type="number" step="0.01" class="form-control form-control-sm cb-value" data-field="${f.key}"
+                       placeholder="数值" style="width:130px" disabled>
+            </div>`;
+
+        const formHtml = `
+            <div style="padding:22px 24px 8px 20px">
+                ${fields.map(rowHtml).join('')}
+                <div style="font-size:12px;color:#a1a5b7;line-height:1.7;margin-top:6px">
+                    · <b>固定值</b>：所有选中商品该价格改为这个数<br>
+                    · <b>按比例%</b>：填 <b>10</b> 涨10%，填 <b>-10</b> 降10%<br>
+                    · <b>按金额</b>：填 <b>2</b> 每个加2元，填 <b>-2</b> 每个减2元<br>
+                    （最终价格不会低于 0）
+                </div>
+            </div>`;
+
+        $(".commodity-batch-price").click(function () {
+            const ids = util.idObjToList(table.bootstrapTable('getSelections'));
+            if (ids.length === 0) {
+                layer.msg("请至少勾选 1 个商品进行操作！");
+                return;
+            }
+
+            layer.open({
+                type: 1,
+                title: `批量改价（已选 ${ids.length} 个商品）`,
+                area: ['480px', 'auto'],
+                content: formHtml,
+                btn: ['确定修改', '取消'],
+                success: (layero) => {
+                    // 选择“不修改”时禁用数值框，其余启用
+                    layero.find('.cb-mode').on('change', function () {
+                        const input = layero.find('.cb-value[data-field="' + $(this).data('field') + '"]');
+                        input.prop('disabled', $(this).val() === '0');
+                        if ($(this).val() === '0') input.val('');
+                    });
+                },
+                yes: (index, layero) => {
+                    const post = {list: ids};
+                    let picked = 0;
+                    let invalid = null;
+                    fields.forEach(f => {
+                        const mode = layero.find('.cb-mode[data-field="' + f.key + '"]').val();
+                        if (mode === '0') return;
+                        const val = layero.find('.cb-value[data-field="' + f.key + '"]').val();
+                        if (val === '' || val === null || isNaN(Number(val))) {
+                            if (invalid === null) invalid = f.label;
+                            return;
+                        }
+                        post[f.key + '_mode'] = mode;
+                        post[f.key + '_value'] = val;
+                        picked++;
+                    });
+                    if (invalid !== null) {
+                        layer.msg(`请填写「${invalid}」的数值`);
+                        return;
+                    }
+                    if (picked === 0) {
+                        layer.msg("请至少选择一个价格字段进行修改");
+                        return;
+                    }
+                    $.post("/plugin/CommodityBatch/api/batchPrice", post, res => {
+                        message.success(res.msg);
+                        layer.close(index);
+                        table.bootstrapTable('refresh', {silent: true});
+                    });
+                }
+            });
+        });
+    });
+</script>

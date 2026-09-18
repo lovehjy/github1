@@ -1,0 +1,46 @@
+<button class="btn btn-sm btn-light-danger destroy-order me-3"><i class="fa-duotone fa-regular fa-trash-can"></i>
+    销毁选中订单
+</button>
+<script>
+
+    ready(() => {
+
+
+        const table = $("#order-table");
+        const boxId = "destroy-order-cascade";
+
+        $(".destroy-order").click(function () {
+            const ids = util.idObjToList(table.bootstrapTable('getSelections'));
+            if (ids.length == 0) {
+                layer.msg("请至少勾选1个商品进行操作！");
+                return;
+            }
+
+            //是否连卡密一起删，在这里当场勾：SweetAlert 的 then() 是弹层关闭后才跑的，
+            //那会儿 DOM 已经没了，所以必须在 preConfirm（关闭之前）把状态取出来
+            let cascade = false;
+
+            message.ask(
+                "你确认要永久性删除这些订单吗？这是极度危险操作，这将影响到整个系统的数据统计以及累计，请三思而后行。"
+                + "<label style='display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;font-size:14px;cursor:pointer'>"
+                + "<input type='checkbox' id='" + boxId + "' style='width:16px;height:16px;cursor:pointer'>"
+                + "<span>同时删除这些订单的卡密</span></label>",
+                () => {
+                    $.post("/plugin/DestroyOrder/api/del", {list: ids, cascade: cascade ? 1 : 0}, res => {
+                        const n = res.data || {};
+                        message.success(res.msg + (cascade ? `（订单 ${Number(n.order || 0)} 笔，卡密 ${Number(n.card || 0)} 张）` : ''));
+                        table.bootstrapTable('refresh', {silent: true});
+                    });
+                },
+                "您确定吗？",
+                "确定",
+                {
+                    preConfirm: () => {
+                        cascade = !!document.getElementById(boxId)?.checked;
+                        return true;
+                    }
+                }
+            );
+        });
+    });
+</script>

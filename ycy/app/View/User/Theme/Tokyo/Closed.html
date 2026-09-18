@@ -1,0 +1,30 @@
+#{include file="./Header.html"}
+<main class="tokyo-main">
+    <section class="tokyo-shell tokyo-shell--narrow">
+        <div class="panel tokyo-closed-panel">
+            <div class="panel-header">
+                <span class="panel-kicker">Maintenance</span>
+                <h1 class="panel-title panel-title-lg">#{t("店铺暂时维护中")}</h1>
+            </div>
+            <div class="panel-body">
+                <p class="tokyo-muted">#{t("当前商城暂时不可下单，维护结束后会恢复访问。")}</p>
+                #{if $config.notice}
+                    <div class="tokyo-inline-note">
+                        #{$config.notice}
+                    </div>
+                #{/if}
+                <div class="tokyo-closed-actions">
+                    <a class="tokyo-button tokyo-button-dark" href="/user/index/query">
+                        <i class="fa-duotone fa-regular fa-folders"></i>
+                        <span>#{t("查询已有订单")}</span>
+                    </a>
+                    <a class="tokyo-button tokyo-button-light" href="/">
+                        <i class="fa-duotone fa-regular fa-house"></i>
+                        <span>#{t("返回首页")}</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+#{include file="./Footer.html"}

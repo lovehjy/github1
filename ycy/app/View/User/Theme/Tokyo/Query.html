@@ -1,0 +1,64 @@
+#{include file="./Header.html"}
+<main class="tokyo-main">
+    <section class="tokyo-shell tokyo-shell--narrow">
+        <section class="tokyo-query-header">
+            <div>
+                <p class="tokyo-eyebrow">Order Lookup</p>
+                <h1 class="tokyo-page-title">#{t("订单查询")}</h1>
+                <p class="tokyo-page-summary">#{t("输入订单号或联系方式，查看你的购买记录。")}</p>
+            </div>
+        </section>
+
+        <div class="panel tokyo-query-panel">
+            <div class="panel-header">
+                <span class="panel-kicker">Search</span>
+            </div>
+            <div class="panel-body">
+                <form class="order-query-form">
+                    <div class="tokyo-query-form">
+                        <input type="text" class="form-control" name="keywords" value="#{$tradeNo}"
+                               placeholder="#{t('请输入订单号或联系方式')}">
+                        <button type="submit" class="tokyo-button tokyo-button-dark btn-search-query">
+                            <i class="fa-duotone fa-regular fa-magnifying-glass"></i>
+                            <span>#{t("查询订单")}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="order-results" style="display: none;">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-kicker">Results</span>
+                </div>
+                <div class="panel-body">
+                    <div class="order-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="no-results" style="display: none;">
+            <div class="panel">
+                <div class="panel-body tokyo-empty-state">
+                    <i class="fa-duotone fa-regular fa-search"></i>
+                    <h3>#{t("未找到相关订单")}</h3>
+                    <p>#{t("请确认订单号或联系方式是否正确，必要时可联系客服协助处理。")}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading-state" style="display: none;">
+            <div class="panel">
+                <div class="panel-body tokyo-empty-state">
+                    <i class="fa-duotone fa-regular fa-spinner-third icon-spin"></i>
+                    <h3>#{t("正在查询订单信息")}</h3>
+                    <p>#{t("请稍候，系统正在拉取订单记录。")}</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+#{ready("/assets/user/controller/index/query.js")}
+#{include file="./Footer.html"}

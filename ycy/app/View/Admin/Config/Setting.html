@@ -1,0 +1,556 @@
+#{include file="../Header.html"}
+<textarea id="md-config-notice-source" hidden aria-hidden="true">#{$config.notice|escape:'html'}</textarea>
+<textarea id="md-config-themes-source" hidden aria-hidden="true">#{$themes_json|escape:'html'}</textarea>
+<!--begin::Content-->
+<div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+    <!--begin::Toolbar-->
+    #{include file="../Toolbar.html"}
+    <!--end::Toolbar-->
+    <!--begin::Post-->
+    <div class="post d-flex flex-column-fluid" id="kt_post">
+        <!--begin::Container-->
+        <div id="kt_content_container" class="container-xxl md-settings">
+            <!--begin::Basic info-->
+            <div class="card mb-5 mb-xl-10">
+                <!--begin::Card header-->
+                <div class="card-header border-0 cursor-pointer">
+                    <!--begin::Card title-->
+                    <div class="card-title m-0">
+                        <h3 class="fw-bolder m-0">#{t("基本设置")}</h3>
+                    </div>
+                    <!--end::Card title-->
+                </div>
+                <!--begin::Card header-->
+                <!--begin::Content-->
+                <div id="kt_account_profile_details" class="collapse show">
+                    <!--begin::Form-->
+                    <form id="data-form" method="post" class="form" data-admin-mobile-settings-page="website">
+                        <nav class="admin-mobile-settings-nav" aria-label="#{t('网站设置分区')}">
+                            <a href="#mobile-setting-brand">#{t("品牌与安全")}</a>
+                            <a href="#mobile-setting-theme">#{t("模板与网络")}</a>
+                            <a href="#mobile-setting-content">#{t("网站内容")}</a>
+                            <a href="#mobile-setting-register">#{t("注册与验证")}</a>
+                            <a href="#mobile-setting-access">#{t("访问状态")}</a>
+                        </nav>
+                        <!--begin::Card body-->
+                        <div class="card-body  p-9">
+                            <h2 class="admin-mobile-settings-section-title" id="mobile-setting-brand"
+                                data-admin-mobile-description="设置网站 LOGO 与站点标识。安全相关选项已移至「安全设置」。">#{t("品牌")}</h2>
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label fw-bold fs-6">LOGO</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8">
+                                    <!--begin::Image input-->
+                                    <div class="image-input image-input-outline w-125px h-125px admin-mobile-image-input admin-mobile-image-input--logo" data-kt-image-input="true"
+                                         style="background-image: url(/assets/admin/images/setting/blank.png)">
+                                        <!--begin::Preview existing logo-->
+                                        <div class="image-input-wrapper w-125px h-125px"
+                                             style="background-image: url(/favicon.ico)"></div>
+                                        <!--end::Preview existing logo-->
+                                        <!--begin::Label-->
+                                        <label class="btn btn-icon btn-circle btn-active-color-primary w-25px h-25px bg-body shadow"
+                                               data-kt-image-input-action="change" data-bs-toggle="tooltip"
+                                               data-admin-mobile-action-placement="inline"
+                                               aria-label="#{t('更换网站 LOGO')}" title="#{t('更换网站 LOGO')}">
+                                            <i class="fa-duotone fa-regular fa-pen"></i>
+                                            <!--begin::Inputs-->
+                                            <input type="file" class="upload-logo"
+                                                   accept=".png, .jpg, .jpeg, .ico"/>
+                                            <input type="hidden" name="logo" value="/favicon.ico"/>
+                                            <!--end::Inputs-->
+                                        </label>
+                                        <!--end::Label-->
+                                        <!--begin::Cancel-->
+                                        <span class="btn btn-icon btn-circle btn-active-color-primary w-25px h-25px bg-body shadow"
+                                              data-kt-image-input-action="cancel" data-bs-toggle="tooltip"
+                                              aria-label="#{t('取消更换网站 LOGO')}" title="#{t('取消更换网站 LOGO')}">
+																<i class="fa-duotone fa-regular fa-xmark"></i>
+															</span>
+                                        <!--end::Cancel-->
+                                    </div>
+                                    <!--end::Image input-->
+                                    <!--begin::Hint-->
+                                    <div class="form-text">#{t("支持文件格式: png, jpg, jpeg,
+                                        ico，更换后，记得强制刷新浏览器，否则你看到的还是缓存。")}
+                                    </div>
+                                    <!--end::Hint-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+
+                            
+
+                            
+
+                            <h2 class="admin-mobile-settings-section-title" id="mobile-setting-theme"
+                                data-admin-mobile-description="选择 PC、手机及会员中心模板，并配置 IP 获取方式和背景图片。">#{t("模板与网络")}</h2>
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label required fw-bold fs-6">#{t("PC模板")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-6 fv-row">
+                                    <!--begin::Input-->
+                                    <select name="user_theme" class="form-select form-select-solid form-select-lg"
+                                            data-control="select2" data-hide-search="false">
+                                        #{foreach $themes as $theme}
+                                            <option value="#{$theme.info.KEY|escape:'html'}" #{if $theme.info.KEY== $config.user_theme} selected #{/if}>
+                                                #{$theme.info.NAME|escape:'html'} (v#{$theme.info.VERSION|escape:'html'})
+                                            </option>
+                                        #{/foreach}
+                                    </select>
+                                    <!--end::Input-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label required fw-bold fs-6">#{t("手机模板")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-6 fv-row">
+                                    <!--begin::Input-->
+                                    <select name="user_mobile_theme"
+                                            class="form-select form-select-solid form-select-lg"
+                                            data-control="select2" data-hide-search="false">
+                                        <option value="0" #{if "0" == $config.user_mobile_theme}selected #{/if}>#{t("跟随PC模板")}
+                                        </option>
+                                        #{foreach $themes as $theme}
+                                            <option value="#{$theme.info.KEY|escape:'html'}" #{if $theme.info.KEY== $config.user_mobile_theme}
+                                            selected #{/if}>#{$theme.info.NAME|escape:'html'} (v#{$theme.info.VERSION|escape:'html'})
+                                            </option>
+                                        #{/foreach}
+                                    </select>
+                                    <!--end::Input-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label required fw-bold fs-6">#{t("PC会员中心")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-6 fv-row">
+                                    <!--begin::Input-->
+                                    <select name="user_center_theme" class="form-select form-select-solid form-select-lg"
+                                            data-control="select2" data-hide-search="false">
+                                        #{foreach $themes as $theme}
+                                            <option value="#{$theme.info.KEY|escape:'html'}" #{if $theme.info.KEY== $config.user_center_theme} selected #{/if}>
+                                                #{$theme.info.NAME|escape:'html'} (v#{$theme.info.VERSION|escape:'html'})
+                                            </option>
+                                        #{/foreach}
+                                    </select>
+                                    <!--end::Input-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label required fw-bold fs-6">#{t("手机会员中心")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-6 fv-row">
+                                    <!--begin::Input-->
+                                    <select name="user_center_mobile_theme"
+                                            class="form-select form-select-solid form-select-lg"
+                                            data-control="select2" data-hide-search="false">
+                                        <option value="0" #{if "0" == $user_center_mobile_theme} selected #{/if}>#{t("跟随PC会员中心模版")}</option>
+                                        #{foreach $themes as $theme}
+                                            <option value="#{$theme.info.KEY|escape:'html'}" #{if $theme.info.KEY == $user_center_mobile_theme} selected #{/if}>
+                                                #{$theme.info.NAME|escape:'html'} (v#{$theme.info.VERSION|escape:'html'})
+                                            </option>
+                                        #{/foreach}
+                                    </select>
+                                    <!--end::Input-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <!--end::Input group-->
+                            
+
+                            
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label required fw-bold fs-6">
+                                    <span class="admin-mobile-setting-label-mobile">#{t("PC背景图片")}</span>
+                                    <span class="admin-mobile-setting-label-desktop">#{t("PC背景图片(支持http地址或者图床api)")}</span>
+                                    <small class="admin-mobile-setting-label-description">#{t("支持直接填写图片网址或上传本地图片。")}</small>
+                                </label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-6 fv-row">
+                                    <input type="text" name="background_url"
+                                           inputmode="url"
+                                           class="form-control form-control-lg form-control-solid"
+                                           placeholder="#{t('请输入背景图床地址，可以是url')}"
+                                           value="#{$config.background_url|escape:'html'}"/>
+                                </div>
+                                <div class="col-lg-2 fv-row">
+                                    <!--begin::Input-->
+                                    <input type="file" class="background-upload" style="display: none;"
+                                           accept=".png, .jpg, .jpeg, .gif"/>
+                                    <button type="button" class="btn btn-light background-upload"
+                                            data-admin-mobile-action-placement="inline"
+                                            aria-label="#{t('上传 PC 网站背景图片')}" title="#{t('上传 PC 网站背景图片')}"
+                                            data-acg-proxy=".background-upload">
+                                        <i class="fa-duotone fa-regular fa-cloud-arrow-up"></i> #{t("上传图片")}
+                                    </button>
+                                    <!--end::Input-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label fw-bold fs-6">
+                                    #{t("手机背景图片")}
+                                    <small class="admin-mobile-setting-label-description">#{t("留空时跟随 PC 背景图片。")}</small>
+                                </label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-6 fv-row">
+                                    <input type="text" name="background_mobile_url"
+                                           inputmode="url"
+                                           class="form-control form-control-lg form-control-solid"
+                                           placeholder="#{t('不设置则使用PC版配置')}" value="#{$config.background_mobile_url|escape:'html'}"/>
+                                </div>
+                                <div class="col-lg-2 fv-row">
+                                    <!--begin::Input-->
+                                    <input type="file" class="background-mobile-upload" style="display: none;"
+                                           accept=".png, .jpg, .jpeg, .gif"/>
+                                    <button type="button" class="btn btn-light background-mb-upload"
+                                            data-admin-mobile-action-placement="inline"
+                                            aria-label="#{t('上传手机网站背景图片')}" title="#{t('上传手机网站背景图片')}"
+                                            data-acg-proxy=".background-mobile-upload">
+                                        <i class="fa-duotone fa-regular fa-cloud-arrow-up"></i> #{t("上传图片")}
+                                    </button>
+                                    <!--end::Input-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <h2 class="admin-mobile-settings-section-title" id="mobile-setting-content"
+                                data-admin-mobile-description="设置店铺名称、网站标题、搜索信息和店铺公告。">#{t("网站内容")}</h2>
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label required fw-bold fs-6">#{t("店铺名称")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <input type="text" name="shop_name"
+                                           class="form-control form-control-lg form-control-solid"
+                                           placeholder="#{t('请输入店铺名称')}" value="#{$config.shop_name|escape:'html'}"/>
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label required fw-bold fs-6">#{t("网站标题")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <input type="text" name="title"
+                                           class="form-control form-control-lg form-control-solid"
+                                           placeholder="#{t('请输入网站标题')}" value="#{$config.title|escape:'html'}"/>
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label  fw-bold fs-6">#{t("关键词")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <input type="text" name="keywords"
+                                           class="form-control form-control-lg form-control-solid"
+                                           placeholder="#{t('请输入网站关键词')}" value="#{$config.keywords|escape:'html'}"/>
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label  fw-bold fs-6">#{t("网站描述")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <textarea name="description"
+                                              class="form-control form-control-lg form-control-solid"
+                                              placeholder="#{t('请输入网站描述')}">#{$config.description|escape:'html'}</textarea>
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label  fw-bold fs-6">#{t("店铺公告")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <div class="notice-editor"></div>
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <h2 class="admin-mobile-settings-section-title" id="mobile-setting-register"
+                                data-admin-mobile-description="设置注册、找回密码、验证码、用户名长度和会话时间。">#{t("注册与验证")}</h2>
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label required fw-bold fs-6">#{t("注册方式")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <!--begin::Input-->
+                                    <select name="registered_type" class="form-select form-select-solid form-select-lg"
+                                            data-control="select2" data-hide-search="true">
+                                        <option value="0" #{if $config.registered_type== 0} selected #{/if}>#{t("用户名")}
+                                        </option>
+                                        <option value="1" #{if $config.registered_type== 1} selected #{/if}>#{t("用户名+手机")}
+                                        </option>
+                                        <option value="2" #{if $config.registered_type== 2} selected #{/if}>#{t("用户名+邮箱")}
+                                        </option>
+                                    </select>
+                                    <!--end::Input-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label required fw-bold fs-6">#{t("找回密码方式")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <!--begin::Input-->
+                                    <select name="forget_type" class="form-select form-select-solid form-select-lg"
+                                            data-control="select2" data-hide-search="true">
+                                        <option value="0" #{if $config.forget_type== 0} selected #{/if}>#{t("邮箱验证码")}
+                                        </option>
+                                        <option value="1" #{if $config.forget_type== 1} selected #{/if}>#{t("手机验证码")}
+                                        </option>
+                                    </select>
+                                    <!--end::Input-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label fw-bold fs-6">#{t("注册验证码")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <!--begin::Options-->
+                                    <div class="d-flex align-items-center mt-3">
+                                        <!--begin::Option-->
+                                        <label class="form-check form-check-inline form-check-solid me-5">
+                                            <input class="form-check-input" name="registered_verification"
+                                                   type="checkbox"
+                                                   value="1" #{if $config.registered_verification== 1} checked #{/if}>
+                                            <span class="fw-bold ps-2 fs-6">#{t("人机验证")}</span>
+                                        </label>
+                                        <!--end::Option-->
+                                        <!--begin::Option-->
+                                        <label class="form-check form-check-inline form-check-solid">
+                                            <input class="form-check-input" name="registered_phone_verification"
+                                                   type="checkbox"
+                                                   value="1" #{if $config.registered_phone_verification== 1} checked #{/if}>
+                                            <span class="fw-bold ps-2 fs-6">#{t("手机验证码")}</span>
+                                        </label>
+                                        <!--end::Option-->
+                                        <!--begin::Option-->
+                                        <label class="form-check form-check-inline form-check-solid">
+                                            <input class="form-check-input" name="registered_email_verification"
+                                                   type="checkbox"
+                                                   value="1" #{if $config.registered_email_verification== 1} checked #{/if}>
+                                            <span class="fw-bold ps-2 fs-6">#{t("邮箱验证码")}</span>
+                                        </label>
+                                        <!--end::Option-->
+                                    </div>
+                                    <!--end::Options-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label fw-bold fs-6">#{t("其他验证码")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <!--begin::Options-->
+                                    <div class="d-flex align-items-center mt-3">
+                                        <!--begin::Option-->
+                                        <label class="form-check form-check-inline form-check-solid me-5">
+                                            <input class="form-check-input" name="login_verification" type="checkbox"
+                                                   value="1" #{if $config.login_verification== 1} checked #{/if}>
+                                            <span class="fw-bold ps-2 fs-6">#{t("登录验证码")}</span>
+                                        </label>
+                                        <!--end::Option-->
+                                        <!--begin::Option-->
+                                        <label class="form-check form-check-inline form-check-solid me-5">
+                                            <input class="form-check-input" name="trade_verification" type="checkbox"
+                                                   value="1" #{if $config.trade_verification== 1} checked #{/if}>
+                                            <span class="fw-bold ps-2 fs-6">#{t("下单验证码")}</span>
+                                        </label>
+                                        <!--end::Option-->
+                                        <!--begin::Option-->
+                                        <label class="form-check form-check-inline form-check-solid me-5">
+                                            <input class="form-check-input" name="admin_login_verification" type="checkbox"
+                                                   value="1" #{if $config.admin_login_verification != '0'} checked #{/if}>
+                                            <span class="fw-bold ps-2 fs-6">#{t("后台登录验证码")}</span>
+                                        </label>
+                                        <!--end::Option-->
+                                    </div>
+                                    <!--end::Options-->
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label  fw-bold fs-6">#{t("注册用户名长度")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <input type="number" name="username_len"
+                                           inputmode="numeric"
+                                           min="1" max="32" step="1"
+                                           class="form-control form-control-lg form-control-solid"
+                                           placeholder="#{t('请输入限制注册用户名长度')}" value="#{$config.username_len|escape:'html'}"/>
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label  fw-bold fs-6">#{t("会话保持时间")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <input type="number" name="session_expire"
+                                           inputmode="numeric"
+                                           min="0" max="31536000" step="1"
+                                           class="form-control form-control-lg form-control-solid"
+                                           placeholder="#{t('请输入会话保持时间，单位/秒')}" value="#{$config.session_expire|escape:'html'}"/>
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <h2 class="admin-mobile-settings-section-title" id="mobile-setting-access"
+                                data-admin-mobile-description="控制会员注册、店铺维护状态及维护公告。">#{t("访问状态")}</h2>
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label fw-bold fs-6">#{t("注册开关")}</label>
+                                <!--begin::Label-->
+                                <!--begin::Label-->
+                                <div class="col-lg-8 d-flex align-items-center">
+                                    <div class="form-check form-check-solid form-switch fv-row">
+                                        <input class="form-check-input w-45px h-30px" type="checkbox"
+                                               name="registered_state"
+                                               value="1" #{if $config.registered_state== 1} checked #{/if}/>
+                                        <label class="form-check-label"></label>
+                                    </div>
+                                </div>
+                                <!--begin::Label-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label fw-bold fs-6">#{t("店铺维护")}</label>
+                                <!--begin::Label-->
+                                <!--begin::Label-->
+                                <div class="col-lg-8 d-flex align-items-center">
+                                    <div class="form-check form-check-solid form-switch fv-row">
+                                        <input class="form-check-input w-45px h-30px" type="checkbox"
+                                               name="closed" value="1" #{if $config.closed== 1} checked #{/if}/>
+                                        <label class="form-check-label"></label>
+                                    </div>
+                                </div>
+                                <!--begin::Label-->
+                            </div>
+                            <!--end::Input group-->
+
+                            <!--begin::Input group-->
+                            <div class="row mb-6">
+                                <!--begin::Label-->
+                                <label class="col-lg-4 col-form-label  fw-bold fs-6">#{t("店铺维护公告")}</label>
+                                <!--end::Label-->
+                                <!--begin::Col-->
+                                <div class="col-lg-8 fv-row">
+                                    <textarea name="closed_message"
+                                              class="form-control form-control-lg form-control-solid"
+                                              placeholder="#{t('请输入店铺维护公告')}">#{$config.closed_message|escape:'html'}</textarea>
+                                </div>
+                                <!--end::Col-->
+                            </div>
+                            <!--end::Input group-->
+                        </div>
+                        <!--end::Card body-->
+                        <!--begin::Actions-->
+                        <div class="card-footer d-flex justify-content-center py-6 px-9">
+                            <button type="button" class="btn btn-primary save-data"><i class="fa-duotone fa-regular fa-floppy-disk me-2"></i>#{t("保存设置")}</button>
+                        </div>
+                        <!--end::Actions-->
+                    </form>
+                    <!--end::Form-->
+                </div>
+                <!--end::Content-->
+            </div>
+            <!--end::Basic info-->
+        </div>
+        <!--end::Container-->
+    </div>
+    <!--end::Post-->
+</div>
+<!--end::Content-->
+
+#{ready("/assets/admin/controller/config/index.js")}
+#{include file="../Footer.html"}

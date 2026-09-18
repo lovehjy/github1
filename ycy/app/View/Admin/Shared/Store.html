@@ -1,0 +1,111 @@
+#{include file="../Header.html"}
+<style>
+    .btn-import-tasks .import-task-count {
+        display: inline-grid;
+        min-width: 24px;
+        height: 24px;
+        place-items: center;
+        box-sizing: border-box;
+        border: 2px solid rgba(var(--md-success-rgb), .24) !important;
+        border-radius: 999px !important;
+        padding: 0 7px;
+        background: #fff !important;
+        box-shadow: 0 2px 5px rgb(0 0 0 / 18%);
+        color: #146c43 !important;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800 !important;
+        line-height: 1;
+    }
+
+    @media (max-width: 991.98px) {
+        html[data-admin-layout="mobile"] .md-store-sync-log-layer .log-textarea {
+            box-sizing: border-box;
+            min-height: 100%;
+            border-radius: 16px;
+            padding: 14px !important;
+            background: var(--admin-mobile-surface-2);
+            color: var(--admin-mobile-text) !important;
+            font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            resize: none;
+        }
+
+        html[data-admin-layout="mobile"] .layui-layer.md-store-sync-log-layer .layui-layer-btn {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        html[data-admin-layout="mobile"] .layui-layer.md-store-sync-log-layer .layui-layer-btn .layui-layer-btn0 {
+            grid-column: 1 / -1;
+            grid-row: 1;
+        }
+
+        html[data-admin-layout="mobile"] .layui-layer.md-store-sync-log-layer .layui-layer-btn .layui-layer-btn1 {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        html[data-admin-layout="mobile"] .layui-layer.md-store-sync-log-layer .layui-layer-btn .layui-layer-btn2 {
+            display: grid;
+            height: 52px;
+            grid-column: 2;
+            grid-row: 2;
+            place-items: center;
+            border: 0;
+            border-radius: 16px;
+            background: var(--admin-mobile-surface-2);
+            color: var(--admin-mobile-text);
+            font-weight: 750;
+        }
+
+        html[data-admin-layout="mobile"] .layui-layer.md-store-import-log-layer .layui-layer-btn {
+            grid-template-columns: 1fr;
+        }
+
+        html[data-admin-layout="mobile"] .layui-layer.md-store-import-log-layer .layui-layer-btn .layui-layer-btn0,
+        html[data-admin-layout="mobile"] .layui-layer.md-store-import-log-layer .layui-layer-btn .layui-layer-btn1 {
+            grid-column: 1 / -1 !important;
+        }
+
+        html[data-admin-layout="mobile"] .layui-layer.md-store-import-log-layer:not(.has-failed-import-retry) .layui-layer-btn .layui-layer-btn1 {
+            grid-row: 1 !important;
+        }
+    }
+</style>
+<!--begin::Content-->
+<div class="content d-flex flex-column flex-column-fluid" id="kt_content" data-manage-id="#{$user.id}">
+    <!--begin::Toolbar-->
+    #{include file="../Toolbar.html"}
+    <!--end::Toolbar-->
+    <!--begin::Post-->
+    <div class="post d-flex flex-column-fluid" id="kt_post">
+        <!--begin::Container-->
+        <div id="kt_content_container" class="container-fluid">
+            <!--begin::Tables Widget 9-->
+            <div class="card mb-5 mb-xl-8">
+                <!--begin::Header-->
+                <div class="card-header border-0">
+                    <div class="card-toolbar">
+                        <button type="button" class="btn btn-sm btn-light-success btn-import-tasks me-3" hidden>
+                            <i class="fa-duotone fa-regular fa-list-check"></i>
+                            #{t("入库任务")}
+                            <span class="badge ms-1 import-task-count">0</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light-primary btn-app-create me-3"><i class="fa-duotone fa-regular fa-circle-plus"></i>#{t("新增店铺")}</button>
+                    </div>
+                </div>
+                <!--end::Header-->
+                <div class="card-body py-3">
+                    <table id="shared-store-table"></table>
+                </div>
+            </div>
+
+            <!--end::Tables Widget 9-->
+        </div>
+        <!--end::Container-->
+    </div>
+    <!--end::Post-->
+</div>
+<!--end::Content-->
+
+#{ready("/assets/admin/controller/shared/store.js?rev=847-checkbox-anchor-v3")}
+#{include file="../Footer.html"}
