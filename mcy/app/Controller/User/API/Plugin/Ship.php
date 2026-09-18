@@ -59,6 +59,12 @@ class Ship extends Base
 
         foreach ($items as $item) {
             $arr = $item->toArray();
+
+            // TreeGrid uses "id" as its node key. Item entities only expose
+            // "unique_id", so without this every commodity becomes treegrid-0
+            // and large remote lists corrupt each other's tree state.
+            $arr['id'] = $arr['unique_id'];
+
             if (!isset($category[$arr['category']])) {
                 $category[$arr['category']] = $id;
                 $arr['pid'] = $id;
@@ -71,7 +77,10 @@ class Ship extends Base
             }
         }
 
-        return $this->json(data: ["list" => $data]);
+        return $this->json(data: [
+            "total" => count($data),
+            "list" => $data
+        ]);
     }
 
 
