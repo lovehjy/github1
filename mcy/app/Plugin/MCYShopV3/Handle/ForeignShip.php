@@ -112,10 +112,31 @@ class ForeignShip extends \Kernel\Plugin\Abstract\ForeignShip
 
         $items = [];
 
+        $this->plugin->log("V3货源返回分类数：" . count($list));
+
+        $failed = 0;
+
         foreach ($list as $category) {
-            foreach ($category['children'] as $child) {
-                $items[] = $this->createItem($url, $child, $category['name'], (string)$this->config['pid']);
+            if (!isset($category['children']) || !is_array($category['children'])) {
+                continue;
             }
+
+            foreach ($category['children'] as $child) {
+                try {
+                    $items[] = $this->createItem($url, $child, (string)$category['name'], (string)$this->config['pid']);
+                } catch (\\Throwable $e) {
+                    $failed++;
+                    $itemId = $child['id'] ?? 'unknown';
+                    $itemName = $child['name'] ?? 'unknown';
+                    $this->plugin->log("[V3货源商品转换失败] ID={$itemId}，名称={$itemName}，错误：{$e->getMessage()}", true);
+                }
+            }
+        }
+
+        $this->plugin->log("V3货源转换完成：成功 " . count($items) . " 个，失败 " . $failed . " 个");
+
+        if (count($items) === 0) {
+            throw new HandleException("V3货源商品转换失败，请查看插件日志");
         }
 
         return $items;
