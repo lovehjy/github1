@@ -113,7 +113,7 @@ class RepertoryItem implements \App\Service\Common\RepertoryItem
                 $createSku->setMarketControlLevelMinPrice($sku['market_control_level_min_price'] ?? "0");
                 $createSku->setMarketControlLevelMaxPrice($sku['market_control_level_max_price'] ?? "0");
                 $createSku->setMarketControlUserMinPrice($sku['market_control_user_min_price'] ?? "0");
-                $createSku->setMarketControlUserMinPrice($sku['market_control_user_max_price'] ?? "0");
+                $createSku->setMarketControlUserMaxPrice($sku['market_control_user_max_price'] ?? "0");
                 $createSku->setMarketControlMinNum((int)$sku['market_control_min_num']);
                 $createSku->setMarketControlMaxNum((int)$sku['market_control_max_num']);
                 $createSku->setMarketControlOnlyNum((int)$sku['market_control_only_num']);
