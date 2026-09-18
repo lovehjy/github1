@@ -1,0 +1,50 @@
+{{ include ("Index/Header.html") }}
+
+<main class="container" id="sena-container">
+    <div class="card category mb-3 translucent">
+        <div class="card-header"><h6 class="card-title mb-1 mt-1"><span class="category-name"><i class="bi bi-bell"></i> {{ i18n("公告")|raw }}</span></h6></div>
+        <div class="card-body pt-3 pb-3 notification">
+            {{ i18n(site.notice)|raw }}
+        </div>
+    </div>
+
+
+    <div class="card category mb-3 translucent category-items">
+        <div class="card-header"><h6 class="card-title mb-1 mt-1"><span class="category-name"><i class="bi bi-tags"></i> {{ i18n("商品分类")|raw }}</span></h6></div>
+        <div class="card-body pt-3 pb-3">
+            <div class="article-items">
+                <a href="/" class="article-item lev-animation {{ category_active() }}"><img src="/app/Plugin/HimenoSena/Assets/Image/Recommend.png" class="article-item-icon"> <span class="article-item-name fw-bold">{{ i18n(plugin.getConfig("recommend_button") ? plugin.getConfig("recommend_button") : '推荐')|raw }}</span></a>
+                {% for cate in category %}
+                <a href="/?cid={{ cate.id }}" class="article-item  lev-animation {{ category_active(cate.id) }}"><img src="{{ cate.icon }}" class="article-item-icon"> <span class="article-item-name">{{ i18n(cate.name)|raw }}</span></a>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+
+
+
+    {% set items = items() %}
+    {% if items|length > 0 %}
+    <div class="card category mb-3 translucent">
+        <div class="card-header"><h6 class="card-title mb-1 mt-1">{{ i18n(category_name())|raw }}</span></h6></div>
+        <div class="card-body pt-3 pb-3">
+            <div class="article-items">
+                {% for item in items %}
+                <a {{ plugin.getConfig("href_blank") == 1 ? 'target="_blank"' : '' }} href="/item?id={{ item.id }}" class="shop-item lev-animation">
+                    <div class="shop-item-icon"><img src="{{ item.thumb_url }}"></div>
+                    <div class="shop-item-info">
+                        <span class="shop-item-price">{{ ccy() }}{{ item.sku[0].price }}</span>
+                        <span class="shop-item-name">{{ i18n(item.name)|raw }}</span>
+                        <div class="shop-stock-info">
+                            <span class="stock">库存：{{ item.stock }}</span>
+                            <span class="sold">销量：{{ item.sold }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</main>
+{{ include ("Index/Footer.html") }}

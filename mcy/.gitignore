@@ -1,0 +1,15 @@
+﻿runtime/
+bin
+vendor/
+*.zip
+*.rar
+*.7z
+*.mp4
+*.mkv
+*.avi
+*.iso
+*.exe
+*.dll
+*.so
+*.bin
+*.dat

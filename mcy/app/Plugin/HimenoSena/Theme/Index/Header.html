@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en" data-bs-theme="auto">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+    <title>{{ item.sku ? item.name|striptags ~ " - " : "" }}{{ site.title }}</title>
+    <meta name="description" content="{{ site.description|striptags }}">
+    <meta name="keywords" content="{{ site.keywords|striptags }}">
+
+    {% if item.sku %}
+        <meta property="og:title" content="{{ item.name|striptags }}">
+        <meta property="og:description"
+              content="{{ item.source.introduce|striptags|length > 100 ? item.source.introduce|striptags|slice(0, 100) ~ '...' : item.source.introduce|striptags }}">
+        <meta property="og:image" content="{{ request.url  ~ item.source.picture_thumb_url }}">
+        <meta property="og:url" content="{{ request.url ~ "/item?id=" ~ item.id }}">
+        <meta property="og:type" content="website">
+    {% endif %}
+
+    <link rel="shortcut icon" href="{{ site.logo }}">
+
+    {{ css([
+        "/app/Plugin/HimenoSena/Assets/Base.css"
+    ], [
+        "/app/Plugin/HimenoSena/Assets/Bootstrap/Css/Bootstrap.css",
+        "/app/Plugin/HimenoSena/Assets/Bootstrap/Font/BootstrapIcon.css",
+        "/app/Plugin/HimenoSena/Assets/Style.css",
+        "/assets/common/js/layui/css/layui.css",
+        "/assets/common/css/select2.min.css",
+        "/assets/common/css/component.css",
+        "/assets/common/css/toastr.min.css",
+        "/assets/common/js/table/bootstrap-table.css",
+        "/assets/common/js/layer/theme/default/layer.css"
+    ])|raw }}
+
+
+    {{ js(["/assets/common/js/ready.js"])|raw }}
+
+    {{ index_var()|raw }}
+
+    {{ hook(env() , point("INDEX_HEADER") , 1)|raw }}
+
+
+    {% if plugin.getConfig('css') %}
+        <style>{{ plugin.getConfig('css')|raw }}</style>
+    {% endif %}
+</head>
+<body style="background: url('{{ site.bg_image }}') fixed no-repeat;background-size: cover;">
+<header class="p-3 mb-3">
+    <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+            <span class="d-flex align-items-center mb-2 me-2 mb-lg-0">
+                <img src="{{ site.logo }}" class="shop-logo">
+            </span>
+
+            <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+                <li class="font-animation {{ link_active("/") }}"><a href="/"
+                                                                     class="nav-link px-2 fw-bold link-secondary"><i
+                                class="bi bi-bag"></i> {{ i18n("购物") }}</a></li>
+                <li class="font-animation {{ link_active("/search") }}"><a href="/search"
+                                                                           class="nav-link px-2 link-secondary fw-bold"><i
+                                class="bi bi-check2-circle"></i>
+                        {{ i18n("订单查询")|raw }}</a></li>
+                <li class="font-animation {{ link_active("/shop/cart") }}"><a href="/shop/cart"
+                                                                              class="nav-link px-2 link-secondary fw-bold"><i
+                                class="bi bi-cart"></i> {{ i18n("购物车") }}</a>
+                </li>
+            </ul>
+
+            <div class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3 ms-2" role="search">
+                <input type="search" class="form-control input-search br10" placeholder="搜索商品关键词.." value="{{ keywords() }}"
+                       aria-label="Search" style="padding: 0.25rem 0.75rem;">
+            </div>
+
+            {{ view_languages()|raw }}
+
+            <div class="dropdown text-end ms-2">
+                {% if user %}
+                    <a href="#" class="d-block link-body-emphasis text-decoration-none dropdown-toggle user-dropdown"
+                       data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{{ user.avatar is not null ? user.avatar : '/favicon.ico' }}" alt="mdo" width="24"
+                             height="24" class="rounded-circle">
+                        <span class="fw-bold text-primary">{{ user.username }}</span>
+                    </a>
+                {% else %}
+                    <a type="button" href="/login" class="btn btn-sm btn-outline-primary rounded-0"><i
+                                class="bi bi-box-arrow-in-right"></i> 登入</a>
+                    <a type="button" href="/register" class="btn btn-sm btn-outline-success rounded-0">创建账号 <i
+                                class="bi bi-box-arrow-in-left"></i></a>
+                {% endif %}
+                <ul class="dropdown-menu text-small">
+                    <li><a class="dropdown-item" href="/user/recharge"><i
+                                    class="bi bi-wallet2"></i> {{ i18n("我的钱包")|raw }}</a></li>
+                    <li><a class="dropdown-item" href="/user/trade/order"><i
+                                    class="bi bi-calendar2-check"></i> {{ i18n("我的订单")|raw }}</a></li>
+                    <li><a class="dropdown-item" href="/user/security"><i
+                                    class="bi bi-gear"></i> {{ i18n("个人设置")|raw }}</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item" href="/user/logout"><i
+                                    class="bi bi-box-arrow-left"></i> {{ i18n("注销登录")|raw }}</a></li>
+                </ul>
+            </div>
+
+
+        </div>
+    </div>
+</header>

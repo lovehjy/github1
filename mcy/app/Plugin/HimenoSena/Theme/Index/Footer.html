@@ -1,0 +1,60 @@
+<footer class="py-3 my-4">
+    <span class="nav justify-content-center border-bottom pb-3 mb-3 text-shadow" style="font-size: .75rem;">
+     {{ (plugin.getConfig("footer_content") ?? "本站严禁未成年人充值以及消费")|raw }}
+    </span>
+    <p class="text-center text-white" style="font-size: .75rem">
+        {% if site.icp != "" %}
+            <a class="text-gray-dark" href="https://beian.miit.gov.cn/">{{ site.icp|raw }}</a>
+        {% endif %}
+    </p>
+</footer>
+
+
+{% if plugin.getConfig('javascript') %}
+    <script>ready(() => { {{ plugin.getConfig('javascript')|raw }} });</script>
+{% endif %}
+
+
+{{ js([
+    "/app/Plugin/HimenoSena/Assets/Base.js?v=20241106"
+] , [
+    "/assets/common/js/jquery.min.js",
+    "/assets/common/js/toastr.min.js",
+    "/assets/common/js/language.js",
+    "/assets/common/js/util/dict.js",
+    "/assets/common/js/util.js",
+    "/assets/common/js/layer/layer.js",
+    "/assets/common/js/jquery.pjax.min.js",
+    "/assets/common/js/format.js",
+    "/assets/common/js/message.js",
+    "/assets/common/js/component.js",
+    "/assets/common/js/layui/layui.js",
+    "/assets/common/js/jquery.treegrid.min.js",
+    "/assets/common/js/jquery.qrcode.min.js",
+    "/assets/common/js/table/bootstrap-table.min.js",
+    "/assets/common/js/table/bootstrap-table-treegrid.min.js",
+    "/assets/common/js/component/form.js",
+    "/assets/common/js/component/search.js",
+    "/assets/common/js/component/xm-select.js",
+    "/assets/common/js/component/tree.select.js",
+    "/assets/common/js/component/authtree.js",
+    "/assets/common/js/component/table.js",
+    "/assets/common/js/component/select2.min.js",
+    "/assets/common/js/cache.js",
+    "/assets/common/js/editor/editor.js",
+    "/assets/common/js/editor/code/code.js",
+    "/assets/common/js/component/decimal.js",
+    "/assets/common/js/broadcast.js",
+    "/assets/common/js/service/treasure.js",
+    "/assets/common/fonts/base/iconfont.js",
+    "/assets/user/js/widget.js",
+    "/assets/user/js/visitor.js",
+    "/assets/user/js/pay.js",
+    "/assets/user/js/util/dict.js",
+    "/assets/user/controller/index/global.js",
+    "/app/Plugin/HimenoSena/Assets/Bootstrap/Js/Bootstrap.js",
+    "/app/Plugin/HimenoSena/Assets/Pjax.js"
+])|raw }}
+{{ hook(env() , point("INDEX_FOOTER") , 1)|raw }}
+</body>
+</html>
