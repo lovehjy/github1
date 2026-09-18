@@ -59,6 +59,7 @@ class Ship extends Base
 
         foreach ($items as $item) {
             $arr = $item->toArray();
+            $arr['id'] = $arr['unique_id'];
             if (!isset($category[$arr['category']])) {
                 $category[$arr['category']] = $id;
                 $arr['pid'] = $id;
@@ -71,7 +72,7 @@ class Ship extends Base
             }
         }
 
-        return $this->json(data: ["list" => $data]);
+        return $this->json(data: ["total" => count($data), "list" => $data]);
     }
 
 
